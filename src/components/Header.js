@@ -1,12 +1,65 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { auth, provider } from "../firebase"
 import styled from 'styled-components'
+import { selectUserName, selectUserPhoto, setUserLogin, setSignOut } from '../features/user/userSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { Navigate, useNavigate } from "react-router-dom"
+
+
 
 function Header() {
+
+  const dispatch = useDispatch()
+  const userName = useSelector(selectUserName);
+  const userPhoto = useSelector(selectUserPhoto);
+  const history = useNavigate()
+
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) =>{
+        if(user){
+            dispatch(setUserLogin({
+                name: user.displayName,
+                email: user.email,
+                photo: user.photoURL
+            }))
+            history("/")
+        }
+    })
+  }, [])
+
+  const signIn = () => {
+        auth.signInWithPopup(provider)
+        .then((result) => {
+            let user = result.user
+            dispatch(setUserLogin({
+                name: user.displayName,
+                email: user.email,
+                photo: user.photoURL
+            }))
+            history("/")
+        })
+  }
+
+  const signOut = () => {
+      auth.signOut()
+      .then(()=>{
+          dispatch(setSignOut());
+          history("/login")
+      })
+  }
+    
   return (
     <div>
         <Nav>
             <Logo src="/images/logo.svg" />
-            <NavMenu>
+            { !userName ? (
+                <LoginContainer>
+                    <Login onClick={signIn}>Login</Login>
+                </LoginContainer>
+                 ):
+
+                <>
+                <NavMenu>
                 <a>
                     <img src="/images/home-icon.svg" />
                     <span>HOME</span>
@@ -33,7 +86,13 @@ function Header() {
                 </a>
 
             </NavMenu>
-            <UserImg src="/images/profilePic.png"/>
+            <UserImg 
+                    onClick={signOut}
+                    src="/images/profilePic.png"/>
+                </>
+            }
+
+            
         </Nav>
     </div>
   )
@@ -104,3 +163,28 @@ const UserImg = styled.img`
     border-radius: 50%;
     cursor: pointer;
 `
+
+const Login = styled.div`
+    border: 1px solid #f9f9f9;
+    padding: 8px 16px;
+    border-radius: 4px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background-color: rgba(0, 0, 0, 0.6);
+    transition: all 0.2s ease 0s;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #f9f9f9;
+        color: #000;
+        border-color: transparent;
+    }
+`
+
+const LoginContainer = styled.div`
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+`
+
+// deploy with firebase react deploy tutorial
